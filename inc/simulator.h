@@ -22,6 +22,8 @@ class Simulator
 
         void saveSimulatePaths(const string & file_name) const;
 
+        void validateSolution() const;
+
     private:
         vector<Path> no_delay_path;
         vector<Path> curr_path;

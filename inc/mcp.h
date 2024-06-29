@@ -6,6 +6,8 @@
 class MCP {
 public:
 
+    int simulation_time = MAX_TIMESTEP;
+
     vector<int> to_go;
 
     MCP(int map_size):map_size(map_size){};

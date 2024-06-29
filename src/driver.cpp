@@ -24,7 +24,7 @@ int main(int argc, char **argv)
         ("inputDelay", po::value<std::string>()->required(), "input delay file name")
         ("output,o", po::value<std::string>()->default_value("./test"), "output file name (no extension)")
         ("outputPath", po::value<std::string>(), "output path file name")
-        ("DelayTime", po::value<int>(), "timesteps of running simulation of delays")
+        ("delayTime", po::value<int>(), "timesteps of running simulation of delays")
         ("planTimeLimit,t", po::value<int>()->default_value(60), "the time limit for planner in seconds")
         ("delayPolicy", po::value<int>()->default_value(1), "execution policy with delays ( 1--MCP")
         ("recoverSolver", po::value<int>()->default_value(1), "recover solver after delays ( 1--MCP");
@@ -54,10 +54,13 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
+    if (vm.count("delayTime"))
+        simulator.delay_simulation = vm["delayTime"].as<int>();
+
     simulator.simulation();
 
     if (vm.count("outputPath"))
-      simulator.saveSimulatePaths(vm["outputPath"].as<string>());
+        simulator.saveSimulatePaths(vm["outputPath"].as<string>());
 
     return 0;
 }

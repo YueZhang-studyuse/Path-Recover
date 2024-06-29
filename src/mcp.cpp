@@ -23,12 +23,15 @@ void MCP::simulate(vector<Path*>& paths, const vector<vector<bool>> & delays)
     cout<<"Start "<<(float)clock()/(float)CLOCKS_PER_SEC<<endl;
 
     for (int t = 0; !unfinished_agents.empty(); t++) {
+        if (t >= simulation_time)
+            break;
         cout<<"Similate t = "<<t<<endl;
         auto old_size = unfinished_agents.size();
 
 
         std::vector<int> before = copy_agent_time;
-        for (auto p = unfinished_agents.begin(); p != unfinished_agents.end();) {
+        for (auto p = unfinished_agents.begin(); p != unfinished_agents.end();) 
+        {
             int i = *p;
             if (t < delays.size())
                 moveAgent(path_copy, paths, p, t, delays[t]);
@@ -66,7 +69,20 @@ void MCP::simulate(vector<Path*>& paths, const vector<vector<bool>> & delays)
 
     }
 
-    for (int i=0;i<paths.size();i++){
+    //add unsimulated path
+    for (auto p = unfinished_agents.begin(); p != unfinished_agents.end();p++)
+    {
+        int i = *p;
+        while (copy_agent_time[i] != (int) no_wait_time[i].size())
+        {
+            path_copy[i].push_back(paths[i]->at(no_wait_time[i][copy_agent_time[i]])); // move
+            copy_agent_time[i]++;
+            //cout<<"copy size "<<copy_agent_time[i]<<"no wait size "<<(int) no_wait_time[i].size()<<endl;
+        }
+    }
+
+    for (int i=0;i<paths.size();i++)
+    {
         *(paths[i]) = path_copy[i];
     }
 

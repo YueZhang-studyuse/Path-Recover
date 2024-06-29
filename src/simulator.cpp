@@ -8,11 +8,14 @@ void Simulator::simulation()
     {
         MCP postmcp(instance.map_size);
         vector<Path*> temp;
+        
         temp.resize(curr_path.size());
         for (int a = 0; a < instance.num_of_agents; a++)
         {
             temp[a] = &(curr_path[a]);
         }
+
+        postmcp.simulation_time = delay_simulation;
         postmcp.build(temp);
         postmcp.simulate(temp,delays);
         postmcp.clear();
@@ -30,6 +33,8 @@ void Simulator::simulation()
         soc+=p.size()-1;
     }
     cout<<"delayed soc: "<<soc<<endl;
+
+    validateSolution();
 }
 
 bool Simulator::loadPaths(const string & file_name)
@@ -148,4 +153,76 @@ void Simulator::saveSimulatePaths(const string & file_name) const
         output << endl;
     }
     output.close();
+}
+
+void Simulator::validateSolution() const
+{
+    int sum = 0;
+    for (int a1 = 0; a1 < instance.num_of_agents; a1++)
+    {
+        if (curr_path[a1].empty())
+        {
+            cerr << "No solution for agent " << a1<< endl;
+            //exit(-1);
+        }
+        else if (instance.start_locations[a1] != curr_path[a1].front().location)
+        {
+            cerr << "The path of agent " << a1 << " starts from location " << curr_path[a1].front().location
+                << ", which is different from its start location " << instance.start_locations[a1] << endl;
+            //exit(-1);
+        }
+        else if (instance.goal_locations[a1] != curr_path[a1].back().location)
+        {
+            cerr << "The path of agent " << a1 << " ends at location " << curr_path[a1].back().location
+                 << ", which is different from its goal location " << instance.goal_locations[a1] << endl;
+            //exit(-1);
+        }
+        for (int t = 1; t < (int) curr_path[a1].size(); t++ )
+        {
+            if (!instance.validMove(curr_path[a1][t - 1].location, curr_path[a1][t].location))
+            {
+                cerr << "The path of agent " << a1 << " jump from "
+                     << curr_path[a1][t - 1].location << " to " << curr_path[a1][t].location
+                     << " between timesteps " << t - 1 << " and " << t << endl;
+                //exit(-1);
+            }
+        }
+        sum += (int) curr_path[a1].size() - 1;
+        for (int a2 = 0; a2 < instance.num_of_agents; a2++)
+        {
+            if (a1 >= a2 || curr_path[a2].empty())
+                continue;
+            int a1_ = curr_path[a1].size() <= curr_path[a2].size()? a1 : a2;
+            int a2_ = curr_path[a1].size() <= curr_path[a2].size()? a2 : a1;
+            int t = 1;
+            for (; t < (int) curr_path[a1_].size(); t++)
+            {
+                if (curr_path[a1_][t].location == curr_path[a2_][t].location) // vertex conflict
+                {
+                    cerr << "Find a vertex conflict between agents " << a1_ << " and " << a2_ <<
+                            " at location " << curr_path[a1_][t].location << " at timestep " << t << endl;
+                    //exit(-1);
+                }
+                else if (curr_path[a1_][t].location == curr_path[a2_][t - 1].location &&
+                        curr_path[a1_][t - 1].location == curr_path[a2_][t].location) // edge conflict
+                {
+                    cerr << "Find an edge conflict between agents " << a1_ << " and " << a2_ <<
+                         " at edge (" << curr_path[a1_][t - 1].location << "," << curr_path[a1_][t].location <<
+                         ") at timestep " << t << endl;
+                    //exit(-1);
+                }
+            }
+            int target = curr_path[a1_].back().location;
+            for (; t < (int) curr_path[a2_].size(); t++)
+            {
+                if (curr_path[a2_][t].location == target)  // target conflict
+                {
+                    cerr << "Find a target conflict where agent " << a2_ << " (of length " << curr_path[a2_].size() - 1<<
+                         ") traverses agent " << a1_ << " (of length " << curr_path[a1_].size() - 1<<
+                         ")'s target location " << target << " at timestep " << t << endl;
+                    //exit(-1);
+                }
+            }
+        }
+    }
 }

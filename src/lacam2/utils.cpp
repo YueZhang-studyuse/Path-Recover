@@ -1,4 +1,4 @@
-#include "../include/utils.hpp"
+#include "../../inc/lacam2/utils.hpp"
 
 void info(const int level, const int verbose) { std::cout << std::endl; }
 

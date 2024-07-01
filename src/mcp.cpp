@@ -33,10 +33,17 @@ void MCP::simulate(vector<Path*>& paths, const vector<vector<bool>> & delays)
         for (auto p = unfinished_agents.begin(); p != unfinished_agents.end();) 
         {
             int i = *p;
-            if (t < delays.size())
-                moveAgent(path_copy, paths, p, t, delays[t]);
+            if (t < max_delay_time)
+            {
+                if (t < delays.size())
+                    moveAgent(path_copy, paths, p, t, delays[t]);
+                else
+                    moveAgent(path_copy, paths, p, t, delays[t-delays.size()]);
+            }
             else
-                moveAgent(path_copy, paths, p, t, delays[t-delays.size()]);
+            {
+                moveAgent(path_copy, paths, p, t, std::vector<bool>(paths.size(),false));
+            }
         }
 
         bool no_move = true;

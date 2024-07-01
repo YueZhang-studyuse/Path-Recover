@@ -11,7 +11,7 @@ po::variables_map vm;
 int main(int argc, char **argv)
 {
     //test instance 
-    //./pr -m ../instance/random/random-32-32-20.map -a ../instance/random/scen-random/random-32-32-20-random-1.scen -k 50 --inputPath ../cbs_results/random/agent-50-i-0.txt --inputDelay ../instance/delay-long/delay-0.015-1.txt --outputPath path.txt
+    //./pr -m ../instance/random/random-32-32-20.map -a ../instance/random/scen-random/random-32-32-20-random-1.scen -k 50 --inputPath ../cbs_results/random/agent-50-i-0.txt --inputDelay ../instance/delay-long/delay-0.015-1.txt --outputPath path.txt --delayPolicy 1 --recoverSolver 1 --delayTime 10
 
     // Declare the supported options.
     po::options_description desc("Allowed options");

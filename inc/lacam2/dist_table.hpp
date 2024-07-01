@@ -4,20 +4,20 @@
 #pragma once
 
 #include "graph.hpp"
-#include "instance.hpp"
+#include "lacam_instance.hpp"
 #include "utils.hpp"
 
 struct DistTable {
   const uint V_size;  // number of vertices
   std::vector<std::vector<uint> >
-      table;          // distance table, index: agent-id & vertex-id
+      table;          // distance table, index: LACAMAgent-id & vertex-id
   std::vector<std::queue<Vertex*> > OPEN;  // search queue
 
-  inline uint get(uint i, uint v_id);      // agent, vertex-id
-  uint get(uint i, Vertex* v);             // agent, vertex
+  inline uint get(uint i, uint v_id);      // LACAMAgent, vertex-id
+  uint get(uint i, Vertex* v);             // LACAMAgent, vertex
 
-  DistTable(const Instance& ins);
-  DistTable(const Instance* ins);
+  DistTable(const LACAMInstance& ins);
+  DistTable(const LACAMInstance* ins);
 
-  void setup(const Instance* ins);  // initialization
+  void setup(const LACAMInstance* ins);  // initialization
 };

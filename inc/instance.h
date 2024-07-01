@@ -12,6 +12,8 @@ public:
     vector<int> start_locations;
     vector<int> goal_locations;
 
+    mutable vector<vector<int>> guidance_path;
+
 	Instance()=default;
 	Instance(const string& map_fname, const string& agent_fname, int num_of_agents = 0);
 
@@ -51,6 +53,27 @@ public:
     {
         return abs(loc1.first - loc2.first) + abs(loc1.second - loc2.second);
     }
+
+    int getAllpairDistance(int loc1, int loc2) const
+	{
+		return heuristic[loc1][loc2];
+	}
+
+    int getGuidanceDistance(int agent, int loc, int t) const
+	{
+		// if (agent >= guidance_path.size())
+		// 	cout<<"id "<<agent<<" "<<guidance_path.size()<<endl;
+		if (guidance_path.empty() || guidance_path[agent].size() <= t)
+			return -1;
+		// if (agent >= guidance_path.size())
+		// 	cout<<"id "<<agent<<" "<<guidance_path.size()<<endl;
+		// if (guidance_path[agent][t] >= heuristic.size())
+		// 	cout<<"t "<<t<<" loc "<<guidance_path[agent][t]<<endl;
+		// if (loc >= heuristic.size())
+		// 	cout<<"loc "<<loc<<endl;
+		int h = getAllpairDistance(loc,guidance_path[agent][t]);
+		return h;
+	}
 
 	int getDegree(int loc) const
 	{

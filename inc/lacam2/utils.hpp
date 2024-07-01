@@ -20,7 +20,8 @@
 #include <unordered_map>
 #include <vector>
 
-using Time = std::chrono::steady_clock;
+using SteadyTime = std::chrono::steady_clock;
+typedef std::chrono::high_resolution_clock Time;
 
 void info(const int level, const int verbose);
 
@@ -34,7 +35,7 @@ void info(const int level, const int verbose, Head&& head, Tail&&... tail)
 
 // time manager
 struct Deadline {
-  const Time::time_point t_s;
+  const SteadyTime::time_point t_s;
   const double time_limit_ms;
 
   Deadline(double _time_limit_ms = 0);

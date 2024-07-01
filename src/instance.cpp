@@ -165,8 +165,8 @@ list<int> Instance::getNeighbors(int curr) const
 void Instance::computeHeuristics()
 {
     int h_size  = 0;
-    cout<<"computing heursitic"<<endl;
-    heuristic.resize(num_of_agents);
+    cout<<"computing all pair"<<endl;
+    heuristic.resize(my_map.size());
 
     struct Node
 	{
@@ -188,13 +188,21 @@ void Instance::computeHeuristics()
 
     for (int i = 0; i < heuristic.size(); i++)
     {
-        int start_loc = start_locations[i];
-        heuristic[i] = std::vector<int>(map_size, MAX_TIMESTEP);
+        if (my_map[i])
+            continue;
+        //heuristic[i] = std::vector<int>(heuristic.size()-i, MAX_TIMESTEP);
+        heuristic[i] = std::vector<int>(heuristic.size(), MAX_TIMESTEP);
+        h_size++;
+    }
+    for (int i = 0; i < heuristic.size(); i++)
+    {
+        if (my_map[i])
+            continue;
         // generate a heap that can save nodes (and a open_handle)
         boost::heap::pairing_heap< Node, boost::heap::compare<Node::compare_node> > heap;
 
-        Node root(start_loc, 0); //compute every node to i
-        heuristic[i][start_loc] = 0;
+        Node root(i, 0); //compute every node to i
+        heuristic[i][i] = 0;
 
         heap.push(root);  // add root to heap
         while (!heap.empty())

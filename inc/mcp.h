@@ -7,6 +7,7 @@ class MCP {
 public:
 
     int simulation_time = MAX_TIMESTEP;
+    int max_delay_time = MAX_TIMESTEP;
 
     vector<int> to_go;
 

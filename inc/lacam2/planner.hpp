@@ -6,21 +6,23 @@
 
 #include "dist_table.hpp"
 #include "graph.hpp"
-#include "instance.hpp"
+#include "lacam_instance.hpp"
 #include "utils.hpp"
+#include "../instance.h"
 
 // objective function
 enum Objective { OBJ_NONE, OBJ_MAKESPAN, OBJ_SUM_OF_LOSS };
 std::ostream& operator<<(std::ostream& os, const Objective objective);
 
-// PIBT agent
-struct Agent {
+// PIBT LACAMAgent
+struct LACAMAgent {
   const uint id;
   Vertex* v_now;   // current location
   Vertex* v_next;  // next location
-  Agent(uint _id) : id(_id), v_now(nullptr), v_next(nullptr) {}
+  int curr_timestep = 0;
+  LACAMAgent(uint _id) : id(_id), v_now(nullptr), v_next(nullptr) {}
 };
-using Agents = std::vector<Agent*>;
+using Agents = std::vector<LACAMAgent*>;
 
 // low-level node
 struct LNode {
@@ -32,32 +34,36 @@ struct LNode {
 };
 
 // high-level node
-struct HNode {
-  static uint HNODE_CNT;  // count #(high-level node)
-  const Config C;
+struct HNode 
+{
+    static uint HNODE_CNT;  // count #(high-level node)
+    const Config C;
 
-  // tree
-  HNode* parent;
-  std::set<HNode*> neighbor;
+    // tree
+    HNode* parent;
+    std::set<HNode*> neighbor;
 
-  // costs
-  uint g;        // g-value (might be updated)
-  const uint h;  // h-value
-  uint f;        // g + h (might be updated)
+    // costs
+    uint g;        // g-value (might be updated)
+    const uint h;  // h-value
+    uint f;        // g + h (might be updated)
 
-  // for low-level search
-  std::vector<float> priorities;
-  std::vector<uint> order;
-  std::queue<LNode*> search_tree;
+    int curr_time = 0;
 
-  HNode(const Config& _C, DistTable& D, HNode* _parent, const uint _g,
-        const uint _h);
-  ~HNode();
+    // for low-level search
+    std::vector<float> priorities;
+    std::vector<uint> order;
+    std::queue<LNode*> search_tree;
+
+    HNode(const Config& _C, const Instance& I, DistTable& D, HNode* _parent, const uint _g,
+          const uint _h);
+    ~HNode();
 };
 using HNodes = std::vector<HNode*>;
 
 struct Planner {
-  const Instance* ins;
+  const Instance& instance;
+  const LACAMInstance* ins;
   const Deadline* deadline;
   std::mt19937* MT;
   const int verbose;
@@ -79,11 +85,11 @@ struct Planner {
   Agents occupied_now;                          // for quick collision checking
   Agents occupied_next;                         // for quick collision checking
 
-  Planner(const Instance* _ins, const Deadline* _deadline, std::mt19937* _MT,
-          const int _verbose = 0,
+  Planner(const Instance& _instance, const LACAMInstance* _ins, const Deadline* _deadline, std::mt19937* _MT,
+          const int _verbose,
           // other parameters
-          const Objective _objective = OBJ_NONE,
-          const float _restart_rate = 0.001);
+          const Objective _objective,
+          const float _restart_rate);
   ~Planner();
   Solution solve(std::string& additional_info);
   void expand_lowlevel_tree(HNode* H, LNode* L);
@@ -93,10 +99,10 @@ struct Planner {
   uint get_edge_cost(HNode* H_from, HNode* H_to);
   uint get_h_value(const Config& C);
   bool get_new_config(HNode* H, LNode* L);
-  bool funcPIBT(Agent* ai);
+  bool funcPIBT(LACAMAgent* ai);
 
   // swap operation
-  Agent* swap_possible_and_required(Agent* ai);
+  LACAMAgent* swap_possible_and_required(LACAMAgent* ai);
   bool is_swap_required(const uint pusher, const uint puller,
                         Vertex* v_pusher_origin, Vertex* v_puller_origin);
   bool is_swap_possible(Vertex* v_pusher_origin, Vertex* v_puller_origin);

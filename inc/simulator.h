@@ -1,6 +1,5 @@
 #pragma once
 #include "instance.h"
-#include "solver.h"
 
 
 class Simulator

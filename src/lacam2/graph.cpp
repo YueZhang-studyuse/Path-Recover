@@ -1,4 +1,4 @@
-#include "../include/graph.hpp"
+#include "../../inc/lacam2/graph.hpp"
 
 Vertex::Vertex(uint _id, uint _index)
     : id(_id), index(_index), neighbor(Vertices())

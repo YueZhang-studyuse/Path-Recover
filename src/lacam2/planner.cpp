@@ -1,9 +1,10 @@
-#include "../include/planner.hpp"
+#include "../../inc/lacam2/planner.hpp"
 
 LNode::LNode(LNode* parent, uint i, Vertex* v)
     : who(), where(), depth(parent == nullptr ? 0 : parent->depth + 1)
 {
-  if (parent != nullptr) {
+  if (parent != nullptr) 
+  {
     who = parent->who;
     who.push_back(i);
     where = parent->where;
@@ -14,7 +15,7 @@ LNode::LNode(LNode* parent, uint i, Vertex* v)
 uint HNode::HNODE_CNT = 0;
 
 // for high-level
-HNode::HNode(const Config& _C, DistTable& D, HNode* _parent, const uint _g,
+HNode::HNode(const Config& _C, const Instance& I, DistTable& D, HNode* _parent, const uint _g,
              const uint _h)
     : C(_C),
       parent(_parent),
@@ -38,13 +39,18 @@ HNode::HNode(const Config& _C, DistTable& D, HNode* _parent, const uint _g,
   if (parent == nullptr) {
     // initialize
     for (uint i = 0; i < N; ++i) priorities[i] = (float)D.get(i, C[i]) / N;
-  } else {
+  } 
+  else 
+  {
+    curr_time = parent->curr_time + 1;
     // dynamic priorities, akin to PIBT
     for (size_t i = 0; i < N; ++i) {
       if (D.get(i, C[i]) != 0) {
         priorities[i] = parent->priorities[i] + 1;
       } else {
         priorities[i] = parent->priorities[i] - (int)parent->priorities[i];
+        if (I.getGuidanceDistance(i,C[i]->index,0) != -1)
+          priorities[i]++;
       }
     }
   }
@@ -63,10 +69,17 @@ HNode::~HNode()
   }
 }
 
-Planner::Planner(const Instance* _ins, const Deadline* _deadline,
-                 std::mt19937* _MT, const int _verbose,
-                 const Objective _objective, const float _restart_rate)
-    : ins(_ins),
+// Planner::Planner(const LACAMInstance* _ins, const Deadline* _deadline,
+//                  std::mt19937* _MT, const int _verbose,
+//                  const Objective _objective, const float _restart_rate)
+Planner::Planner(const Instance& _instance, const LACAMInstance* _ins, const Deadline* _deadline, std::mt19937* _MT,
+          const int _verbose = 0,
+          // other parameters
+          const Objective _objective = OBJ_NONE,
+          const float _restart_rate = 0.001)
+    :
+      instance(_instance), 
+      ins(_ins),
       deadline(_deadline),
       MT(_MT),
       verbose(_verbose),
@@ -91,13 +104,13 @@ Solution Planner::solve(std::string& additional_info)
   solver_info(1, "start search");
 
   // setup agents
-  for (auto i = 0; i < N; ++i) A[i] = new Agent(i);
+  for (auto i = 0; i < N; ++i) A[i] = new LACAMAgent(i);
 
   // setup search
   auto OPEN = std::stack<HNode*>();
   auto EXPLORED = std::unordered_map<Config, HNode*, ConfigHasher>();
   // insert initial node, 'H': high-level node
-  auto H_init = new HNode(ins->starts, D, nullptr, 0, get_h_value(ins->starts));
+  auto H_init = new HNode(ins->starts, instance, D, nullptr, 0, get_h_value(ins->starts));
   OPEN.push(H_init);
   EXPLORED[H_init->C] = H_init;
 
@@ -106,7 +119,8 @@ Solution Planner::solve(std::string& additional_info)
   HNode* H_goal = nullptr;          // to store goal node
 
   // DFS
-  while (!OPEN.empty() && !is_expired(deadline)) {
+  while (!OPEN.empty() && !is_expired(deadline)) 
+  {
     loop_cnt += 1;
 
     // do not pop here!
@@ -128,8 +142,7 @@ Solution Planner::solve(std::string& additional_info)
     if (H_goal == nullptr && is_same_config(H->C, ins->goals)) {
       H_goal = H;
       solver_info(1, "found solution, cost: ", H->g);
-      if (objective == OBJ_NONE) break;
-      continue;
+      break;
     }
 
     // create successors at the low-level search
@@ -158,7 +171,7 @@ Solution Planner::solve(std::string& additional_info)
     } else {
       // insert new search node
       const auto H_new = new HNode(
-          C_new, D, H, H->g + get_edge_cost(H->C, C_new), get_h_value(C_new));
+          C_new, instance, D, H, H->g + get_edge_cost(H->C, C_new), get_h_value(C_new));
       EXPLORED[H_new->C] = H_new;
       if (H_goal == nullptr || H_new->f < H_goal->f) OPEN.push(H_new);
     }
@@ -285,6 +298,7 @@ bool Planner::get_new_config(HNode* H, LNode* L)
     // set occupied now
     a->v_now = H->C[a->id];
     occupied_now[a->v_now->id] = a;
+    a->curr_timestep = H->curr_time;
   }
 
   // add constraints
@@ -313,68 +327,156 @@ bool Planner::get_new_config(HNode* H, LNode* L)
   return true;
 }
 
-bool Planner::funcPIBT(Agent* ai)
+// bool Planner::funcPIBT(LACAMAgent* ai)
+// {
+//   const auto i = ai->id;
+//   const auto K = ai->v_now->neighbor.size();
+
+//   // get candidates for next locations
+//   for (auto k = 0; k < K; ++k) {
+//     auto u = ai->v_now->neighbor[k];
+//     C_next[i][k] = u;
+//     if (MT != nullptr)
+//       tie_breakers[u->id] = get_random_float(MT);  // set tie-breaker
+//   }
+//   C_next[i][K] = ai->v_now;
+
+//   // sort
+//   std::sort(C_next[i].begin(), C_next[i].begin() + K + 1,
+//             [&](Vertex* const v, Vertex* const u) {
+//               return D.get(i, v) + tie_breakers[v->id] <
+//                      D.get(i, u) + tie_breakers[u->id];
+//             });
+
+//   LACAMAgent* swap_agent = swap_possible_and_required(ai);
+//   if (swap_agent != nullptr)
+//     std::reverse(C_next[i].begin(), C_next[i].begin() + K + 1);
+
+//   // main operation
+//   for (auto k = 0; k < K + 1; ++k) {
+//     auto u = C_next[i][k];
+
+//     // avoid vertex conflicts
+//     if (occupied_next[u->id] != nullptr) continue;
+
+//     auto& ak = occupied_now[u->id];
+
+//     // avoid swap conflicts
+//     if (ak != nullptr && ak->v_next == ai->v_now) continue;
+
+//     // reserve next location
+//     occupied_next[u->id] = ai;
+//     ai->v_next = u;
+
+//     // priority inheritance
+//     if (ak != nullptr && ak != ai && ak->v_next == nullptr && !funcPIBT(ak))
+//       continue;
+
+//     // success to plan next one step
+//     // pull swap_agent when applicable
+//     if (k == 0 && swap_agent != nullptr && swap_agent->v_next == nullptr &&
+//         occupied_next[ai->v_now->id] == nullptr) {
+//       swap_agent->v_next = ai->v_now;
+//       occupied_next[swap_agent->v_next->id] = swap_agent;
+//     }
+//     return true;
+//   }
+
+//   // failed to secure node
+//   occupied_next[ai->v_now->id] = ai;
+//   ai->v_next = ai->v_now;
+//   return false;
+// }
+
+bool Planner::funcPIBT(LACAMAgent* ai)
 {
-  const auto i = ai->id;
-  const auto K = ai->v_now->neighbor.size();
+    const auto i = ai->id;
+    const auto K = ai->v_now->neighbor.size();
 
-  // get candidates for next locations
-  for (auto k = 0; k < K; ++k) {
-    auto u = ai->v_now->neighbor[k];
-    C_next[i][k] = u;
-    if (MT != nullptr)
-      tie_breakers[u->id] = get_random_float(MT);  // set tie-breaker
-  }
-  C_next[i][K] = ai->v_now;
-
-  // sort
-  std::sort(C_next[i].begin(), C_next[i].begin() + K + 1,
-            [&](Vertex* const v, Vertex* const u) {
-              return D.get(i, v) + tie_breakers[v->id] <
-                     D.get(i, u) + tie_breakers[u->id];
-            });
-
-  Agent* swap_agent = swap_possible_and_required(ai);
-  if (swap_agent != nullptr)
-    std::reverse(C_next[i].begin(), C_next[i].begin() + K + 1);
-
-  // main operation
-  for (auto k = 0; k < K + 1; ++k) {
-    auto u = C_next[i][k];
-
-    // avoid vertex conflicts
-    if (occupied_next[u->id] != nullptr) continue;
-
-    auto& ak = occupied_now[u->id];
-
-    // avoid swap conflicts
-    if (ak != nullptr && ak->v_next == ai->v_now) continue;
-
-    // reserve next location
-    occupied_next[u->id] = ai;
-    ai->v_next = u;
-
-    // priority inheritance
-    if (ak != nullptr && ak != ai && ak->v_next == nullptr && !funcPIBT(ak))
-      continue;
-
-    // success to plan next one step
-    // pull swap_agent when applicable
-    if (k == 0 && swap_agent != nullptr && swap_agent->v_next == nullptr &&
-        occupied_next[ai->v_now->id] == nullptr) {
-      swap_agent->v_next = ai->v_now;
-      occupied_next[swap_agent->v_next->id] = swap_agent;
+    // get candidates for next locations
+    for (auto k = 0; k < K; ++k) 
+    {
+        auto u = ai->v_now->neighbor[k];
+        C_next[i][k] = u;
+        if (MT != nullptr)
+            tie_breakers[u->id] = get_random_float(MT);  // set tie-breaker
     }
-    return true;
-  }
+    C_next[i][K] = ai->v_now;
 
-  // failed to secure node
-  occupied_next[ai->v_now->id] = ai;
-  ai->v_next = ai->v_now;
-  return false;
+    LACAMAgent* swap_agent = nullptr;
+
+
+    int goal_loc = instance.getGoals()[ai->id];
+    //sort
+    std::sort(C_next[i].begin(), C_next[i].begin() + K + 1,
+              [&](Vertex* const v, Vertex* const u) 
+              {
+                int v_h;
+                int u_h;
+                v_h = instance.getGuidanceDistance(ai->id,v->index,ai->curr_timestep+1);
+                u_h = instance.getGuidanceDistance(ai->id,u->index,ai->curr_timestep+1);
+                if (v_h == -1)
+                    v_h = instance.getAllpairDistance(goal_loc,v->index);
+                if (u_h == -1)
+                    u_h = instance.getAllpairDistance(goal_loc,u->index);
+
+                return v_h + tie_breakers[v->id] <
+                        u_h + tie_breakers[u->id];
+
+              });
+
+    // swap_agent = swap_possible_and_required(ai);
+
+    // if (swap_agent != nullptr)
+    // {
+    //   std::reverse(C_next[i].begin(), C_next[i].begin() + K + 1);
+    // }
+    //cout<<"operations "<<K<<endl;
+      
+    // main operation
+    for (auto k = 0; k < K + 1; ++k) 
+    {
+        auto u = C_next[i][k];
+
+
+        // avoid vertex conflicts
+        if (occupied_next[u->id] != nullptr) 
+        {
+            continue;
+        }
+
+
+        auto& ak = occupied_now[u->id];
+
+        // avoid swap conflicts
+        if (ak != nullptr && ak->v_next == ai->v_now) continue;
+
+        // reserve next location
+        occupied_next[u->id] = ai;
+        ai->v_next = u;
+
+        // priority inheritance
+        if (ak != nullptr && ak != ai && ak->v_next == nullptr && !funcPIBT(ak))
+          continue;
+
+        // success to plan next one step
+        // pull swap_agent when applicable
+        if (k == 0 && swap_agent != nullptr && swap_agent->v_next == nullptr &&
+            occupied_next[ai->v_now->id] == nullptr) 
+        {
+            swap_agent->v_next = ai->v_now;
+            occupied_next[swap_agent->v_next->id] = swap_agent;
+        }
+        return true;
+    }
+
+    // failed to secure node
+    occupied_next[ai->v_now->id] = ai;
+    ai->v_next = ai->v_now;
+    return false;
 }
 
-Agent* Planner::swap_possible_and_required(Agent* ai)
+LACAMAgent* Planner::swap_possible_and_required(LACAMAgent* ai)
 {
   const auto i = ai->id;
   // ai wanna stay at v_now -> no need to swap

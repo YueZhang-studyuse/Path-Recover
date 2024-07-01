@@ -9,8 +9,8 @@ ENDIF()
 
 # include_directories("inc" "inc/CBS" "inc/PIBT" "inc/lacam")
 # file(GLOB SOURCES "src/*.cpp" "src/CBS/*.cpp" "src/PIBT/*.cpp" "src/lacam/*.cpp")
-include_directories("inc")
-file(GLOB SOURCES "src/*.cpp")
+include_directories("inc" "inc/lacam2")
+file(GLOB SOURCES "src/*.cpp" "src/lacam2/*.cpp")
 add_executable(pr ${SOURCES})
 
 # Find Boost

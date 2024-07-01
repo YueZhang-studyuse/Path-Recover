@@ -1,14 +1,17 @@
-#include "../include/instance.hpp"
+#include "../../inc/lacam2/lacam_instance.hpp"
 
-Instance::Instance(const std::string& map_filename,
-                   const std::vector<uint>& start_indexes,
-                   const std::vector<uint>& goal_indexes)
-    : G(map_filename),
+LACAMInstance::LACAMInstance(const std::string& map_filename,
+                   const std::vector<int>& start_indexes,
+                   const std::vector<int>& goal_indexes)
+    : G(Graph(map_filename)),
       starts(Config()),
       goals(Config()),
       N(start_indexes.size())
 {
-  for (auto k : start_indexes) starts.push_back(G.U[k]);
+  for (auto k : start_indexes) 
+  {
+    starts.push_back(G.U[k]);
+  }
   for (auto k : goal_indexes) goals.push_back(G.U[k]);
 }
 
@@ -16,7 +19,7 @@ Instance::Instance(const std::string& map_filename,
 static const std::regex r_instance =
     std::regex(R"(\d+\t.+\.map\t\d+\t\d+\t(\d+)\t(\d+)\t(\d+)\t(\d+)\t.+)");
 
-Instance::Instance(const std::string& scen_filename,
+LACAMInstance::LACAMInstance(const std::string& scen_filename,
                    const std::string& map_filename, const uint _N)
     : G(Graph(map_filename)), starts(Config()), goals(Config()), N(_N)
 {
@@ -51,7 +54,7 @@ Instance::Instance(const std::string& scen_filename,
   }
 }
 
-Instance::Instance(const std::string& map_filename, std::mt19937* MT,
+LACAMInstance::LACAMInstance(const std::string& map_filename, std::mt19937* MT,
                    const uint _N)
     : G(Graph(map_filename)), starts(Config()), goals(Config()), N(_N)
 {
@@ -83,7 +86,7 @@ Instance::Instance(const std::string& map_filename, std::mt19937* MT,
   }
 }
 
-bool Instance::is_valid(const int verbose) const
+bool LACAMInstance::is_valid(const int verbose) const
 {
   if (N != starts.size() || N != goals.size()) {
     info(1, verbose, "invalid N, check instance");

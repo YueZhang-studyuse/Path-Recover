@@ -464,12 +464,12 @@ bool Planner::funcPIBT(LACAMAgent* ai)
 
               });
 
-    swap_agent = swap_possible_and_required(ai);
+    // swap_agent = swap_possible_and_required(ai);
 
-    if (swap_agent != nullptr)
-    {
-      std::reverse(C_next[i].begin(), C_next[i].begin() + K + 1);
-    }
+    // if (swap_agent != nullptr)
+    // {
+    //   std::reverse(C_next[i].begin(), C_next[i].begin() + K + 1);
+    // }
     //cout<<"operations "<<K<<endl;
       
     // main operation
@@ -563,7 +563,12 @@ bool Planner::is_swap_required(const uint pusher, const uint puller,
     auto v_pusher = v_pusher_origin;
     auto v_puller = v_puller_origin;
     Vertex* tmp = nullptr;
-    while (D.get(pusher, v_puller) < D.get(pusher, v_pusher)) 
+    //while (D.get(pusher, v_puller) < D.get(pusher, v_pusher)) 
+    while((instance.guidance_heuristic[pusher][v_puller->index] < instance.guidance_heuristic[pusher][v_pusher->index]) || 
+        (
+            instance.guidance_heuristic[pusher][v_puller->index] == instance.guidance_heuristic[pusher][v_pusher->index] &&
+            instance.second_guidance_heuristic[pusher][v_puller->index] < instance.second_guidance_heuristic[pusher][v_pusher->index]
+        ))
     {
         auto n = v_puller->neighbor.size();
         // remove agents who need not to move

@@ -53,13 +53,36 @@ void Simulator::simulation()
             else
             {
                 starts[i] = curr_path[i][delay_simulation].location;
-                instance.guidance_path[i].resize(curr_path[i].size()-delay_simulation);
-                for (int j = 0; j < instance.guidance_path[i].size(); j++)
+
+                bool has_collision = false;
+                // for (int k = 0; k < i; k++)
+                // {
+                //     if (!instance.guidance_path[k].empty())
+                //     {
+                //         has_collision = instance.hasCollision(curr_path[i],curr_path[k]);
+                //     }
+                //     if (has_collision)
+                //     {
+                //         cout<<"find collision"<<endl;
+                //         break;
+                //     }
+                // }
+                if (!has_collision)
                 {
-                    instance.guidance_path[i][j] = curr_path[i][j+delay_simulation].location;
+                    instance.guidance_path[i].resize(curr_path[i].size()-delay_simulation);
+                    for (int j = 0; j < instance.guidance_path[i].size(); j++)
+                    {
+                        instance.guidance_path[i][j] = curr_path[i][j+delay_simulation].location;
+                    }
                 }
-                curr_path[i].resize(delay_simulation+1);
+                //curr_path[i].resize(delay_simulation+1);
             }
+        }
+        instance.initGuidanceHeuristics();
+        for (int i = 0; i < instance.num_of_agents; i++)
+        {
+            if (curr_path[i].size() > delay_simulation + 1)
+                curr_path[i].resize(delay_simulation+1);
         }
 
         string map_fname = instance.getMapFile();
@@ -89,6 +112,8 @@ void Simulator::simulation()
                 if (solution[max_time][agent]->index != solution[max_time-1][agent]->index)
                     break;
             }
+            if (max_time == 0)
+                continue;
             curr_path[agent].resize(max_time+delay_simulation+1);
             for (size_t t = 0; t <= max_time; t++)
             {
@@ -96,43 +121,6 @@ void Simulator::simulation()
             }
         }
     }
-
-    // if (delay_solver == 1 && recover_solver == 2)
-    // {
-    //     string map_fname = instance.getMapFile();
-    //     LACAMInstance ins = LACAMInstance(map_fname, instance.getStarts(), instance.getGoals());
-    //     auto MT = std::mt19937(0);
-    //     const auto deadline = Deadline(time_limit * 1000);
-    //     const Objective objective = static_cast<Objective>(1);
-    //     const float restart_rate = 0.01;
-    //     string verbose = "1";
-    //     const auto solution = solve(ins, verbose, 0, &deadline, &MT, objective, restart_rate);
-
-    //     bool solved = true;
-    //     for (int agent = 0; agent < instance.num_of_agents; agent++)
-    //     {
-    //         if (solution.back()[agent]->index != instance.getGoals()[agent])
-    //         {
-    //             solved = false; //find not stay at target
-    //             break;
-    //         }
-    //     }
-
-    //     for (int agent = 0; agent < instance.num_of_agents; agent++)
-    //     {
-    //         size_t max_time = solution.size()-1;
-    //         for (; max_time > 0; max_time--)
-    //         {
-    //             if (solution[max_time][agent]->index != solution[max_time-1][agent]->index)
-    //                 break;
-    //         }
-    //         curr_path[agent].resize(max_time+1);
-    //         for (size_t t = 0; t <= max_time; t++)
-    //         {
-    //             curr_path[agent][t].location = solution[t][agent]->index;
-    //         }
-    //     }
-    // }
 
     int soc = 0;
     for (auto p: no_delay_path)
@@ -146,6 +134,36 @@ void Simulator::simulation()
         soc+=p.size()-1;
     }
     cout<<"delayed soc: "<<soc<<endl;
+
+    for (int i = 0; i <instance.num_of_agents; i++)
+    {
+        //cout<<"curr size "<<curr_path[i].size()<<" no delay size "<<no_delay_path[i].size()<<endl;
+        cout<<i<<" increase "<<(int)curr_path[i].size() - (int)no_delay_path[i].size()<<endl;
+    }
+
+    soc = 0;
+    for (int i = 0; i < no_delay_path.size();i++)
+    {
+        for (auto loc: no_delay_path[i])
+        {
+            if (loc.location == instance.getGoals()[i])
+                break;
+            soc++;
+        }
+    }
+    cout<<"original touch time "<<soc<<endl;
+
+    soc = 0;
+    for (int i = 0; i < curr_path.size();i++)
+    {
+        for (auto loc: curr_path[i])
+        {
+            if (loc.location == instance.getGoals()[i])
+                break;
+            soc++;
+        }
+    }
+    cout<<"delayed touch time "<<soc<<endl;
 
     validateSolution();
 }

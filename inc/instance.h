@@ -4,6 +4,24 @@
 class Instance 
 {
 public:
+	struct Node
+	{
+		int location;
+		int value;
+
+		Node() = default;
+		Node(int location, int value) : location(location), value(value) {}
+		// the following is used to compare nodes in the OPEN list
+		struct compare_node
+		{
+			// returns true if n1 > n2 (note -- this gives us *min*-heap).
+			bool operator()(const Node& n1, const Node& n2) const
+			{
+				return n1.value >= n2.value;
+			}
+		};  // used by OPEN (heap) to compare nodes (top of the heap has min f-val, and then highest g-val)
+	};
+
 	int num_of_cols;
 	int num_of_rows;
 	int map_size;
@@ -11,6 +29,8 @@ public:
     int num_of_agents;
     vector<int> start_locations;
     vector<int> goal_locations;
+
+	int guidance_mode = 2; //1--time-independent path
 
     mutable vector<vector<int>> guidance_path;
 
@@ -59,20 +79,31 @@ public:
 		return heuristic[loc1][loc2];
 	}
 
+	void initGuidanceHeuristics() const;
+
+	int getTimeIndependentHeuristics(int agent, int loc) const;
+
     int getGuidanceDistance(int agent, int loc, int t) const
 	{
-		// if (agent >= guidance_path.size())
-		// 	cout<<"id "<<agent<<" "<<guidance_path.size()<<endl;
-		if (guidance_path.empty() || guidance_path[agent].size() <= t)
+		if (guidance_mode == 1)
+		{
+			if (guidance_path.empty() || guidance_path[agent].size() <= t)
+				return -1;
+			int h = getAllpairDistance(loc,guidance_path[agent][t]);
+			return h;
+		}
+		else
+		{
+			int h = getTimeIndependentHeuristics(agent,loc);
+			if (h != MAX_TIMESTEP)
+				return h;
 			return -1;
-		// if (agent >= guidance_path.size())
-		// 	cout<<"id "<<agent<<" "<<guidance_path.size()<<endl;
-		// if (guidance_path[agent][t] >= heuristic.size())
-		// 	cout<<"t "<<t<<" loc "<<guidance_path[agent][t]<<endl;
-		// if (loc >= heuristic.size())
-		// 	cout<<"loc "<<loc<<endl;
-		int h = getAllpairDistance(loc,guidance_path[agent][t]);
-		return h;
+		}
+	}
+
+	int getSecondGuidanceDistance(int agent, int loc) const
+	{
+		return second_guidance_heuristic[agent][loc];
 	}
 
 	int getDegree(int loc) const
@@ -95,6 +126,8 @@ public:
 
     void computeHeuristics();
 
+	bool hasCollision(const Path& p1, const Path& p2) const;
+
 private:
 	  // int moves_offset[MOVE_COUNT];
 	  vector<bool> my_map;
@@ -102,6 +135,9 @@ private:
 	  string agent_fname;
 
       vector<vector<int>> heuristic;
+	  mutable vector<vector<int>> guidance_heuristic; //agent id <loc>
+	  mutable vector<vector<int>> second_guidance_heuristic; //agent id <loc>
+	  mutable vector<std::queue<Node>> OPEN;
 
 	  bool loadMap();
 	  void printMap() const;

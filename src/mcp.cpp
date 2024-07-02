@@ -225,7 +225,7 @@ bool MCP::moveAgent(vector<Path>& paths_copy, vector<Path*>& paths, list<int>::i
                     copy_mcp[previous].front().insert(i);
                 ++p;
                 // cout <<"["<< i <<",rf],";
-                //cout<<"result delay "<<i<<endl;
+                cout<<"result delay "<<i<<endl;
                 // Decision temp("delay", previous/map_col, previous%map_col, i,"red");
                 // decisions.push_back(temp);
                 // cout<<"- { type: delay, id: "<<i<<", x: "<<previous/map_col<<", y: "<<previous%map_col<<"}"<<endl;;
